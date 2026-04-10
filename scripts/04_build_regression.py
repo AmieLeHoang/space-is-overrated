@@ -27,6 +27,10 @@ def run_analysis():
     if 'log_zhvi_2009' in df.columns:
         df['tech_X_zhvi'] = df['delta_tech_share_10_19'] * df['log_zhvi_2009']
         df['bartik_X_zhvi'] = df['bartik_shock_pure'] * df['log_zhvi_2009']
+
+        if 'saiz_elasticity' in df.columns:
+            df['tech_X_saiz'] = df['delta_tech_share_10_19'] * df['saiz_elasticity']
+            df['bartik_X_saiz'] = df['bartik_shock_pure'] * df['saiz_elasticity']
     
     df['const'] = 1
     
@@ -51,7 +55,7 @@ def run_analysis():
     print(iv_base.first_stage)
     
     # ==========================================
-    # MODEL B: HOUSING INTERACTION
+    # MODEL B: HOUSING INTERACTION (ZHVI)
     # ==========================================
     if 'log_zhvi_2009' in df.columns:
         print("\n\nRunning Model B: Housing Interaction")
@@ -80,6 +84,63 @@ def run_analysis():
         print(iv_int.summary)
         print("\nFIRST STAGE:")
         print(iv_int.first_stage)
+
+    # ==========================================
+    # MODEL C: SAIZ ELASTICITY INTERACTION
+    # ==========================================
+    if 'saiz_elasticity' in df.columns:
+        print("\n\nRunning Model C: Saiz Elasticity Interaction")
+
+        interact_vars = [
+            'delta_log_rest_emp_10_19',
+            'delta_tech_share_10_19',
+            'bartik_shock_pure',
+            'weight_2010',
+            'pre_retail_growth',
+            'saiz_elasticity',
+            'tech_X_saiz',
+            'bartik_X_saiz'
+        ]
+
+        df_int = df.dropna(subset=interact_vars).copy()
+
+        iv_int = IV2SLS(
+            dependent=df_int['delta_log_rest_emp_10_19'],
+            exog=df_int[['const', 'pre_retail_growth', 'saiz_elasticity']],
+            endog=df_int[['delta_tech_share_10_19', 'tech_X_saiz']],
+            instruments=df_int[['bartik_shock_pure', 'bartik_X_saiz']],
+            weights=df_int['weight_2010']
+        ).fit(cov_type='robust')
+
+        print(iv_int.summary)
+        print("\nFIRST STAGE:")
+        print(iv_int.first_stage)
+
+        interact_vars = [
+            'delta_log_rest_emp_10_19', 
+            'delta_tech_share_10_19', 
+            'bartik_shock_pure', 
+            'weight_2010', 
+            'pre_retail_growth',  
+            'saiz_elasticity', 
+            'tech_X_saiz', 
+            'bartik_X_saiz'
+        ]
+        
+        df_int = df.dropna(subset=interact_vars).copy()
+        
+        iv_int = IV2SLS(
+            dependent=df_int['delta_log_rest_emp_10_19'],
+            exog=df_int[['const', 'pre_retail_growth', 'saiz_elasticity']],
+            endog=df_int[['delta_tech_share_10_19', 'tech_X_saiz']],
+            instruments=df_int[['bartik_shock_pure', 'bartik_X_saiz']],
+            weights=df_int['weight_2010']
+        ).fit(cov_type='robust')
+        
+        print(iv_int.summary)
+        print("\nFIRST STAGE:")
+        print(iv_int.first_stage)
+
 
 if __name__ == "__main__":
     run_analysis()

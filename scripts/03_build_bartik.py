@@ -1,5 +1,5 @@
 """
-02_build_bartik.py
+03_build_bartik.py
 
 This script constructs the Bartik instrument for the pure tech shock, following Moretti's functional form. It also prepares 
 the dataset for regression analysis by pivoting the data and calculating necessary variables. The output is saved as 
@@ -15,7 +15,7 @@ import numpy as np
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_PATH = os.path.join(BASE_DIR, 'data', 'processed', 'czone_master_panel.csv')
+DATA_PATH = os.path.join(BASE_DIR, 'data', 'processed', 'czone_master_panel_with_saiz.csv')
 OUT_PATH = os.path.join(BASE_DIR, 'data', 'processed', 'bartik_ready.csv')
 
 def construct_bartik():
@@ -29,11 +29,8 @@ def construct_bartik():
     df_2009 = df_years[df_years['year'] == 2009].set_index('czone')
     df_2019 = df_years[df_years['year'] == 2019].set_index('czone')
     
-    # =========================================================
-    # 2. CONSTRUCT THE LEAVE-ONE-OUT (LOO) PURE TECH BARTIK
-    # =========================================================
+    # Calculate the pure tech shock using the LOO national growth rates
     tech_sectors = ['software_emp', 'dataproc_emp', 'it_consult_emp']
-    
     print("Calculating 2009 Local Shares and Leave-One-Out (LOO) Bartik")
     
     # Initialize an empty series for the shock
@@ -62,12 +59,13 @@ def construct_bartik():
         share_2009 = df_2009[k] / df_2009['total_emp']
         bartik_shock_pure += (share_2009.fillna(0) * loo_g_rate)
 
-    # =========================================================
-    # 3. PIVOT AND CALCULATE MORETTI FUNCTIONAL FORM
-    # =========================================================
-
-    # Save Zillow data if it exists
+    
+    # Save Zillow data
     housing_data = df_years[['czone', 'log_zhvi_2009']].drop_duplicates() if 'log_zhvi_2009' in df_years.columns else None
+
+    # Save Saiz elasticity
+    saiz_data = df_years[['czone', 'saiz_elasticity']].drop_duplicates() if 'saiz_elasticity' in df_years.columns else None
+
 
     df_pivot = df_years.pivot(
         index='czone', columns='year', 
@@ -78,6 +76,8 @@ def construct_bartik():
     
     if housing_data is not None:
         df_pivot = pd.merge(df_pivot, housing_data, on='czone', how='left')
+        if saiz_data is not None:
+            df_pivot = pd.merge(df_pivot, saiz_data, on='czone', how='left')
 
     # Calculate pure tech aggregates
     df_pivot['pure_tech_2009'] = df_pivot['software_emp_2009'] + df_pivot['dataproc_emp_2009'] + df_pivot['it_consult_emp_2009']
@@ -121,7 +121,7 @@ def construct_bartik():
     
     df_pivot = df_pivot.replace([np.inf, -np.inf], np.nan)
     df_pivot.to_csv(OUT_PATH, index=False)
-    print(f"Phase 02 Complete: {OUT_PATH}")
+    print(f"Phase 03 Complete: {OUT_PATH}")
 
 if __name__ == "__main__":
     construct_bartik()
