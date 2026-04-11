@@ -68,7 +68,7 @@ def build_spatial_data():
         
         # Merge this baseline constraint back into the master employment panel
         df_cz = pd.merge(df_cz, cz_housing[['czone', 'log_zhvi_2009']], on='czone', how='left')
-        print("Successfully attached 'log_zhvi_2009' to master panel!")
+        print("Successfully attached 'log_zhvi_2009' to master panel")
     else:
         print(f"WARNING: Zillow data not found at {ZHVI_DATA}. Skipping housing merge.")
 
